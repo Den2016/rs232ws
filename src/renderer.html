@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RS232-to-WebSocket Bridge</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        label {
+            width: 150px;
+            margin-right: 10px;
+        }
+        select, input[type="text"] {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<h2>Настройки <br>RS232-to-WebSocket Bridge</h2>
+<div id="settings-form">
+    <!-- Выбор порта WebSocket -->
+    <div class="form-group">
+        <label for="ws-port">Порт WebSocket:</label>
+        <input type="text" id="ws-port" value="" placeholder="Например, 58081">
+    </div>
+
+    <!-- Выбор последовательного порта -->
+    <div class="form-group">
+        <label for="com-port">Последовательный порт:</label>
+        <select id="com-port"></select>
+    </div>
+
+    <!-- выбор скорости обмена -->
+    <div class="form-group">
+        <label for="baud-rate">Скорость обмена (бит/сек):</label>
+        <select id="baud-rate">
+            <option value="2400">2400</option>
+            <option value="4800">4800</option>
+            <option value="9600">9600</option>
+            <option value="19200">19200</option>
+            <option value="38400">38400</option>
+            <option value="57600">57600</option>
+            <option value="115200">115200</option>
+            <option value="230400">230400</option>
+            <option value="460800">460800</option>
+            <option value="921600">921600</option>
+            <option value="1000000">1000000</option>
+            <option value="2000000">2000000</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="use-port">Использовать порт:</label>
+        <input type="checkbox" id="use-port" checked>
+    </div>
+
+    <!-- Кнопка сохранения настроек -->
+    <button onclick="saveSettings()">Сохранить настройки</button>
+</div>
+<hr>
+<div id="status-message" style="text-align: center; margin-top: 20px;">
+    
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const comPortSelect = document.querySelector('#com-port');
+        const baudRateSelect = document.querySelector('#baud-rate');
+        const usePortCheckbox = document.querySelector('#use-port');
+        const wsPortInput = document.querySelector('#ws-port');
+    
+        // Чтение текущих настроек из хранилища
+        const currentSettings = await window.electronAPI.getSettings();
+        wsPortInput.value = currentSettings.wsPort;
+        baudRateSelect.value = currentSettings.baudRate;
+        usePortCheckbox.checked = currentSettings.usePort ?? true; // Включено по умолчанию
+    
+        // Загрузка доступных COM-портов
+        const availablePorts = await window.electronAPI.getAvailablePorts();
+        availablePorts.forEach(port => {
+            const option = document.createElement('option');
+            option.value = port.path;
+            option.textContent = `${port.path}`;
+            comPortSelect.appendChild(option);
+        });
+    
+        // Выбор текущего активного порта
+        comPortSelect.value = currentSettings.port;
+    
+        // // Реакции на изменение чекбокса
+        // usePortCheckbox.addEventListener('change', async () => {
+        //     const newUsePortValue = usePortCheckbox.checked;
+        //     if (!newUsePortValue) {
+        //         // Если сняли галочку, закрываем порт
+        //         window.electronAPI.closeSerialPort()
+        //             .then(() => alert('Порт закрыт.'))
+        //             .catch(err => alert('Ошибка при закрытии порта:\n' + err));
+        //     }
+        // });
+    
+    });
+    // Сохранение настроек
+    function saveSettings() {
+        const wsPort = document.querySelector('#ws-port').value.trim();
+        const comPort = document.querySelector('#com-port').value.trim();
+        const baudRate = document.querySelector('#baud-rate').value.trim();
+        const usePort = document.querySelector('#use-port').checked;
+        console.log('Сохранение настроек:', { wsPort, comPort, baudRate, usePort });
+        window.electronAPI.updateSettings({ wsPort, port: comPort, baudRate, usePort })
+            .then(() => alert('Настройки сохранены'))
+            .catch(err => alert('Ошибка при сохранении настроек:\n' + err));
+    };
+    window.electronAPI.on('status-message',(args) => {
+        console.log(args); // Сообщение от основного процесса
+        document.getElementById('status-message').innerText = args.msg;
+    });
+</script>
+</body>
+</html>

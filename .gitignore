@@ -1,0 +1,30 @@
+# Игнорируем общие артефакты сборки
+node_modules/
+build/
+dist/
+out/
+coverage/
+
+# Конфигурационные файлы окружения
+.env*
+.npmrc
+
+# Файлы сборщика
+yarn-error.log
+npm-debug.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Кэш Electron
+electron-builder-cache/
+
+# Локальные настройки IDE
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.pid
+*.seed
+*.tmp
+*.temp
+*.lockfile

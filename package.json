@@ -1,0 +1,49 @@
+{
+  "name": "rs232ws",
+  "version": "1.1.0",
+  "description": "rs232 to websocket transport",
+  "main": "main.js",
+  "author": "Den2016",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "serialport": "^13.0.0",
+    "electron-store": "^10.0.1",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "productName": "rs232ws",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis"],
+      "requestedExecutionLevel": "asInvoker",
+      "extraResources": []
+    },
+    "files": [
+      "**/*"
+    ],
+    "extraMetadata": {},
+    "nsis": {
+      "runAfterFinish": true,
+      "createDesktopShortcut": false,
+      "allowElevation": true,
+      "perMachine": true,
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true,
+      "include": "./installer.nsi"
+    }
+  }
+}
+
