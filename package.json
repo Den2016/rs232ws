@@ -5,13 +5,14 @@
   "main": "main.js",
   "author": "Den2016",
   "license": "MIT",
-  "type": "module",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "electron-builder"
   },
   "dependencies": {
+    "@serialport/bindings-cpp": "^10.5.0",
+    "@serialport/parser-readline": "^10.5.0",
     "electron-store": "^8.2.0",
     "serialport": "^10.5.0",
     "ws": "^8.18.1"
