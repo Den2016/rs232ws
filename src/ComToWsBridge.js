@@ -31,6 +31,10 @@ class ComToWsBridge {
     this._port = null;
     this._parser = null;
     this._events = [];
+    this._reconnectTimeout = null;
+    this._reconnectDelay = 3000;
+    this._portStatus = 'disconnected';
+    this._manualClose = false;
 
     this.initWebSocketServer();
     this.initSerialPort();
@@ -58,6 +62,12 @@ class ComToWsBridge {
       this._port = new SerialPort({ path: this._portName, baudRate: this._baudRate });
       this._parser = this._port.pipe(new ReadlineParser());
 
+      this._port.on('open', () => {
+        this._portStatus = 'connected';
+        this.emitStatusChange('connected');
+        console.log('Serial port opened successfully.');
+      });
+
       this._parser.on('data', data => {
         console.log(`Received data from serial port: ${data}`);
         this._events.forEach(event => {
@@ -80,10 +90,18 @@ class ComToWsBridge {
 
       this._port.on('close', () => {
         console.log('Serial port closed.');
+        this._portStatus = 'disconnected';
+        this.emitStatusChange('disconnected');
+        if (this._usePort && !this._manualClose) {
+          this.scheduleReconnect();
+        }
+        this._manualClose = false;
       });
 
       this._port.on('error', err => {
         console.error('Error on serial port:', err.message);
+        this._portStatus = 'disconnected';
+        this.emitStatusChange('disconnected');
       });
     } catch (err) {
       console.error('Failed to initialize serial port:', err);
@@ -171,7 +189,12 @@ class ComToWsBridge {
   }
 
   async stopSerialPort() {
-    if (this._port) {
+    this._manualClose = true;
+    if (this._reconnectTimeout) {
+      clearTimeout(this._reconnectTimeout);
+      this._reconnectTimeout = null;
+    }
+    if (this._port && this._port.isOpen) {
       await new Promise((resolve, reject) => {
         this._port.close(err => {
           if (err) reject(err);
@@ -179,9 +202,9 @@ class ComToWsBridge {
         });
       });
       console.log(Date.now(), 'Serial port closed.');
-      this._port = null;
-      this._parser = null;
     }
+    this._port = null;
+    this._parser = null;
   }
 
   closeAll() {
@@ -199,6 +222,29 @@ class ComToWsBridge {
   async getAvailablePorts() {
     const binding = autoDetect();
     return await binding.list();
+  }
+
+  scheduleReconnect() {
+    if (this._reconnectTimeout) return;
+    this._portStatus = 'reconnecting';
+    this.emitStatusChange('reconnecting');
+    console.log(`Scheduling reconnect in ${this._reconnectDelay}ms...`);
+    this._reconnectTimeout = setTimeout(() => {
+      this._reconnectTimeout = null;
+      this.initSerialPort();
+    }, this._reconnectDelay);
+  }
+
+  emitStatusChange(status) {
+    this._events.forEach(event => {
+      if (event.eventName === 'status') {
+        event.callback(status);
+      }
+    });
+  }
+
+  getPortStatus() {
+    return this._portStatus;
   }
 }
 

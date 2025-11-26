@@ -9,7 +9,7 @@ console.log('ipcRenderer:', ipcRenderer);
 
 
 // Доступные каналы IPC
-const validChannels = ['get-settings', 'update-settings', 'get-available-ports'];
+const validChannels = ['get-settings', 'update-settings', 'get-available-ports', 'get-port-status'];
 
 // Безопасное взаимодействие между render-процессом и main-процессом
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Прислушивается к событиям из основного процесса
     on: (channel, func) => {
-        let validChannels = ['status-message'];        
+        let validChannels = ['status-message', 'port-status'];        
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (_, ...args) => func(...args));
         }

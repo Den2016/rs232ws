@@ -120,6 +120,10 @@ function createBridge() {
             console.log(`Received data: ${data}`);
             sendStatusMessage(data);
         });
+        bridge.addListener('status', (status) => {
+            console.log(`Port status: ${status}`);
+            sendPortStatus(status);
+        });
     } else {
         console.log('Bridge already exists!');
     }   
@@ -132,6 +136,12 @@ function sendStatusMessage(msg) {
         mainWindow.webContents.send('status-message', { msg });
     } else {
         console.error('Main window is not available to send status message.');
+    }
+}
+
+function sendPortStatus(status) {
+    if (mainWindow) {
+        mainWindow.webContents.send('port-status', { status });
     }
 }
 
@@ -175,6 +185,13 @@ ipcMain.handle('get-available-ports', async (_event) => {
     }else{
         return '';
     }
+});
+
+ipcMain.handle('get-port-status', async (_event) => {
+    if (bridge !== null) {
+        return bridge.getPortStatus();
+    }
+    return 'disconnected';
 });
 
 // Добавляем обработчик для закрытия порта

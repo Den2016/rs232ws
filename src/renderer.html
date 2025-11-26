@@ -38,6 +38,39 @@
         button:hover {
             background-color: #0056b3;
         }
+        .save-button-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .save-message {
+            color: #28a745;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            white-space: nowrap;
+        }
+        .save-message.show {
+            opacity: 1;
+        }
+        .port-status {
+            margin-left: 10px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .port-status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .port-status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .port-status.reconnecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +86,7 @@
     <div class="form-group">
         <label for="com-port">Последовательный порт:</label>
         <select id="com-port"></select>
+        <span id="port-status" class="port-status disconnected">Отключен</span>
     </div>
 
     <!-- выбор скорости обмена -->
@@ -80,7 +114,10 @@
     </div>
 
     <!-- Кнопка сохранения настроек -->
-    <button onclick="saveSettings()">Сохранить настройки</button>
+    <div class="save-button-container">
+        <button onclick="saveSettings()">Сохранить настройки</button>
+        <span id="save-message" class="save-message">Настройки сохранены</span>
+    </div>
 </div>
 <hr>
 <div id="status-message" style="text-align: center; margin-top: 20px;">
@@ -101,17 +138,50 @@
         baudRateSelect.value = currentSettings.baudRate;
         usePortCheckbox.checked = currentSettings.usePort ?? true; // Включено по умолчанию
     
-        // Загрузка доступных COM-портов
-        const availablePorts = await window.electronAPI.getAvailablePorts();
-        availablePorts.forEach(port => {
-            const option = document.createElement('option');
-            option.value = port.path;
-            option.textContent = `${port.path}`;
-            comPortSelect.appendChild(option);
-        });
+        // Функция загрузки портов
+        async function loadPorts() {
+            const selectedPort = comPortSelect.value;
+            comPortSelect.innerHTML = '';
+            const availablePorts = await window.electronAPI.getAvailablePorts();
+            availablePorts.forEach(port => {
+                const option = document.createElement('option');
+                option.value = port.path;
+                option.textContent = `${port.path}`;
+                comPortSelect.appendChild(option);
+            });
+            comPortSelect.value = selectedPort || currentSettings.port;
+        }
     
-        // Выбор текущего активного порта
-        comPortSelect.value = currentSettings.port;
+        // Загрузка доступных COM-портов
+        await loadPorts();
+    
+        // Обновление списка при клике на select
+        comPortSelect.addEventListener('click', loadPorts);
+
+        // Обновление статуса порта
+        async function updatePortStatus() {
+            const status = await window.electronAPI.invoke('get-port-status');
+            setPortStatus(status);
+        }
+
+        function setPortStatus(status) {
+            const statusEl = document.getElementById('port-status');
+            statusEl.className = 'port-status ' + status;
+            const statusText = {
+                'connected': 'Подключен',
+                'disconnected': 'Отключен',
+                'reconnecting': 'Переподключение...'
+            };
+            statusEl.textContent = statusText[status] || status;
+        }
+
+        // Подписка на изменения статуса
+        window.electronAPI.on('port-status', (args) => {
+            setPortStatus(args.status);
+        });
+
+        // Начальная загрузка статуса
+        updatePortStatus();
     
         // // Реакции на изменение чекбокса
         // usePortCheckbox.addEventListener('change', async () => {
@@ -133,7 +203,11 @@
         const usePort = document.querySelector('#use-port').checked;
         console.log('Сохранение настроек:', { wsPort, comPort, baudRate, usePort });
         window.electronAPI.updateSettings({ wsPort, port: comPort, baudRate, usePort })
-            .then(() => alert('Настройки сохранены'))
+            .then(() => {
+                const msg = document.getElementById('save-message');
+                msg.classList.add('show');
+                setTimeout(() => msg.classList.remove('show'), 5000);
+            })
             .catch(err => alert('Ошибка при сохранении настроек:\n' + err));
     };
     window.electronAPI.on('status-message',(args) => {
